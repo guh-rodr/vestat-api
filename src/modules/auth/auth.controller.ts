@@ -1,13 +1,13 @@
 import { CookieSerializeOptions } from '@fastify/cookie';
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { Public } from 'src/common/decorators/public.decorator';
+import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { SignInUserBodyDto } from './dto/signin-user.dto';
 import { SignUpUserBodyDto } from './dto/signup-user.dto';
 
-@Public()
 @Controller('/auth')
 export class AuthController {
   constructor(
@@ -15,15 +15,7 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
-  @Post('/signup')
-  async signUp(@Body() body: SignUpUserBodyDto) {
-    return this.authService.signUp(body);
-  }
-
-  @Post('/signin')
-  async signIn(@Body() body: SignInUserBodyDto, @Res({ passthrough: true }) response: FastifyReply) {
-    const { user, accessToken, refreshToken } = await this.authService.signIn(body);
-
+  private storeCookies(response: FastifyReply, accessToken: string, refreshToken: string) {
     const cookieOptions: CookieSerializeOptions = {
       httpOnly: true,
       sameSite: 'none',
@@ -31,19 +23,34 @@ export class AuthController {
       secure: this.configService.get('NODE_ENV') === 'production',
     };
 
-    response.setCookie('refreshToken', refreshToken, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
     response.setCookie('accessToken', accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000,
     });
 
+    response.setCookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  @Public()
+  @Post('/signup')
+  async signUp(@Body() body: SignUpUserBodyDto) {
+    return this.authService.signUp(body);
+  }
+
+  @Public()
+  @Post('/signin')
+  async signIn(@Body() body: SignInUserBodyDto, @Res({ passthrough: true }) response: FastifyReply) {
+    const { user, accessToken, refreshToken } = await this.authService.signIn(body);
+
+    this.storeCookies(response, accessToken, refreshToken);
+
     return user;
   }
 
+  @Public()
   @Post('/signout')
   async signOut(@Req() request: FastifyRequest, @Res({ passthrough: true }) response: FastifyReply) {
     const refreshToken = request.cookies['refreshToken'];
@@ -55,33 +62,20 @@ export class AuthController {
   }
 
   @Get('/me')
+  @UseGuards(AuthGuard)
   async getProfile(@Req() request: FastifyRequest) {
-    const accessToken = request.cookies['accessToken'];
+    const user = request['user'];
 
-    return await this.authService.getProfile(accessToken);
+    return user;
   }
 
+  @Public()
   @Post('/refresh')
   async refreshTokens(@Req() request: FastifyRequest, @Res({ passthrough: true }) response: FastifyReply) {
     const oldRefreshToken = request.cookies['refreshToken'];
 
     const { accessToken, refreshToken } = await this.authService.refreshTokens(oldRefreshToken);
 
-    const cookieOptions: CookieSerializeOptions = {
-      httpOnly: true,
-      sameSite: 'none',
-      path: '/',
-      secure: this.configService.get('NODE_ENV') === 'production',
-    };
-
-    response.setCookie('refreshToken', refreshToken, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    response.setCookie('accessToken', accessToken, {
-      ...cookieOptions,
-      maxAge: 15 * 60 * 1000,
-    });
+    this.storeCookies(response, accessToken, refreshToken);
   }
 }

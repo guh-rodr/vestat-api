@@ -13,6 +13,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
   async signUp(data: SignUpUserBodyDto) {
     const passwordHash = await argon2.hash(data.password);
 
@@ -124,25 +125,5 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
-  }
-
-  async getProfile(accessToken: string) {
-    if (!accessToken) {
-      throw new UnauthorizedException({ error: 'TokenMissing' });
-    }
-
-    try {
-      const { sub, name } = this.jwtService.verify(accessToken);
-      return {
-        id: sub,
-        name,
-      };
-    } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        throw new UnauthorizedException({ error: 'TokenExpired' });
-      }
-
-      throw new UnauthorizedException({ error: 'TokenInvalid' });
-    }
   }
 }
