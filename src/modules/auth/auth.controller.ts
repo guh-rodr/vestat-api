@@ -18,7 +18,7 @@ export class AuthController {
   private storeCookies(response: FastifyReply, accessToken: string, refreshToken: string) {
     const cookieOptions: CookieSerializeOptions = {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: this.configService.get('NODE_ENV') === 'production' ? 'none' : 'lax',
       path: '/',
       secure: this.configService.get('NODE_ENV') === 'production',
     };
