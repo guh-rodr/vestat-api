@@ -46,9 +46,10 @@ export class CustomerService {
     };
   }
 
-  private async getMetrics() {
+  private async getMetrics(customerId: string) {
     const [salesMetrics, totalInflow] = await this.prisma.$transaction([
       this.prisma.sale.aggregate({
+        where: { customerId },
         _sum: { total: true },
         _count: { id: true },
       }),
@@ -57,6 +58,9 @@ export class CustomerService {
         _sum: { value: true },
         where: {
           flow: 'inflow',
+          sale: {
+            customerId,
+          },
         },
       }),
     ]);
@@ -117,7 +121,7 @@ export class CustomerService {
   }
 
   async getStats(id: string) {
-    const metrics = await this.getMetrics();
+    const metrics = await this.getMetrics(id);
     const preferences = await this.getPreferences(id);
 
     return {
