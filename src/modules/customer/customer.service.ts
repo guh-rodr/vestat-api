@@ -11,10 +11,6 @@ import { DeleteManyCustomerBodyDto } from './dto/delete-customer.dto';
 import { ListCustomersQueryDto } from './dto/list-customers.dto';
 import { UpdateCustomerBodyDto } from './dto/update-customer.dto';
 
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 @Injectable()
 export class CustomerService {
   constructor(private prisma: PrismaService) {}
@@ -32,8 +28,6 @@ export class CustomerService {
   }
 
   async getOverview(id: string) {
-    await delay(2000);
-
     const { purchases, ...customer } = await this.prisma.customer.findFirst({
       where: { id },
       select: {
@@ -173,8 +167,6 @@ export class CustomerService {
   }
 
   async update(id: string, data: UpdateCustomerBodyDto) {
-    await delay(2000);
-
     const customer = await this.prisma.customer.update({
       where: { id },
       data,

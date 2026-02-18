@@ -11,10 +11,6 @@ import { UpdateTransactionBodyDto } from './dto/update-transaction.dto';
 import { CASHFLOW_FILTERS_MAP } from './transaction.filters';
 import { CASHFLOW_SORTABLE_FIELDS } from './transaction.sort';
 
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 @Injectable()
 export class TransactionService {
   constructor(private prisma: PrismaService) {}

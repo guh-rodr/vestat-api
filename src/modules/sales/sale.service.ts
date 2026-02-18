@@ -12,10 +12,6 @@ import { ListSalesBodyDto, ListSalesQueryDto } from './dto/list-sales.dto';
 import { SALE_FILTERS_MAP } from './sale.filters';
 import { SALE_SORTABLE_FIELDS } from './sale.sort';
 
-async function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 @Injectable()
 export class SaleService {
   constructor(private prisma: PrismaService) {}
@@ -99,8 +95,6 @@ export class SaleService {
   }
 
   async getOverview(saleId: string) {
-    await delay(1000);
-
     const sale = await this.prisma.sale.findFirst({
       where: { id: saleId },
       select: {
@@ -135,8 +129,6 @@ export class SaleService {
   }
 
   async getItems(saleId: string) {
-    await delay(2000);
-
     const items = await this.prisma.saleItem.findMany({
       where: { saleId },
       select: {
@@ -171,8 +163,6 @@ export class SaleService {
   }
 
   async getInstallments(saleId: string) {
-    await delay(2000);
-
     const installments = await this.prisma.cashFlowTransaction.findMany({
       where: { saleId, flow: 'inflow', category: 'SALES_REVENUE' },
       select: {
@@ -195,8 +185,6 @@ export class SaleService {
   }
 
   async createInstallment(saleId: string, data: CreateInstallmentBodyDto) {
-    await delay(2000);
-
     const paidAt = DateTime.fromISO(data.paidAt, { zone: 'America/Sao_Paulo' }).toJSDate();
 
     const sale = await this.prisma.sale.findFirst({
