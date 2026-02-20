@@ -7,6 +7,15 @@ import { ListSalesBodyDto } from '../sales/dto/list-sales.dto';
 import { CUSTOMER_FILTERS_MAP } from './customer.filters';
 import { CUSTOMER_SORTABLE_FIELDS } from './customer.sort';
 import { CreateCustomerBodyDto } from './dto/create-customer.dto';
+import {
+  CreateCustomerResponseDto,
+  CustomerAutocompleteResponseDto,
+  CustomerListResponseDto,
+  CustomerOverviewResponseDto,
+  CustomerSaleResponseDto,
+  CustomerStatsResponseDto,
+  UpdateCustomerResponseDto,
+} from './dto/customer-response.dto';
 import { DeleteManyCustomerBodyDto } from './dto/delete-customer.dto';
 import { ListCustomersQueryDto } from './dto/list-customers.dto';
 import { UpdateCustomerBodyDto } from './dto/update-customer.dto';
@@ -15,7 +24,7 @@ import { UpdateCustomerBodyDto } from './dto/update-customer.dto';
 export class CustomerService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateCustomerBodyDto) {
+  async create(data: CreateCustomerBodyDto): Promise<CreateCustomerResponseDto> {
     const customer = await this.prisma.customer.create({
       data,
       select: {
@@ -27,7 +36,7 @@ export class CustomerService {
     return customer;
   }
 
-  async getOverview(id: string) {
+  async getOverview(id: string): Promise<CustomerOverviewResponseDto> {
     const { sales, ...customer } = await this.prisma.customer.findUniqueOrThrow({
       where: { id },
       select: {
@@ -120,7 +129,7 @@ export class CustomerService {
     };
   }
 
-  async getStats(id: string) {
+  async getStats(id: string): Promise<CustomerStatsResponseDto> {
     await this.prisma.customer.findUniqueOrThrow({ where: { id } });
 
     const metrics = await this.getMetrics(id);
@@ -132,7 +141,7 @@ export class CustomerService {
     };
   }
 
-  async getSales(customerId: string) {
+  async getSales(customerId: string): Promise<CustomerSaleResponseDto[]> {
     const { sales } = await this.prisma.customer.findUniqueOrThrow({
       where: { id: customerId },
       select: {
@@ -151,7 +160,7 @@ export class CustomerService {
       },
     });
 
-    const result = sales.map((sale) => {
+    const result = sales.map((sale): CustomerSaleResponseDto => {
       const totalReceived = sale.transactions.reduce((acc, curr) => acc + curr.value, 0);
 
       const profitMargin = sale.total === 0 ? 0 : sale.profit / sale.total;
@@ -176,7 +185,7 @@ export class CustomerService {
     return result;
   }
 
-  async update(id: string, data: UpdateCustomerBodyDto) {
+  async update(id: string, data: UpdateCustomerBodyDto): Promise<UpdateCustomerResponseDto> {
     const customer = await this.prisma.customer.update({
       where: { id },
       data,
@@ -185,7 +194,7 @@ export class CustomerService {
     return customer;
   }
 
-  async listAutocomplete(search: string) {
+  async listAutocomplete(search: string): Promise<CustomerAutocompleteResponseDto[]> {
     const customers = await this.prisma.customer.findMany({
       where: {
         OR: [{ name: { contains: search } }, { phone: { contains: search } }],
@@ -201,7 +210,7 @@ export class CustomerService {
     return customers;
   }
 
-  async listTable(options: ListCustomersQueryDto, filter: ListSalesBodyDto) {
+  async listTable(options: ListCustomersQueryDto, filter: ListSalesBodyDto): Promise<CustomerListResponseDto> {
     const sort = buildPrismaSort(options, CUSTOMER_SORTABLE_FIELDS);
     const pagination = buildPrismaPagination(options);
 
@@ -241,10 +250,6 @@ export class CustomerService {
     } else {
       await this.prisma.customer.delete({ where: { id } });
     }
-
-    return {
-      id,
-    };
   }
 
   async deleteMany(data: DeleteManyCustomerBodyDto, canDeleteSales: boolean) {
