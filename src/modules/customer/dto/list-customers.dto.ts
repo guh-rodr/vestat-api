@@ -12,10 +12,6 @@ export class ListCustomersQueryDto extends SortDto {
   @IsOptional()
   @IsString()
   search?: string;
-
-  @IsOptional()
-  @IsString()
-  autocomplete?: string;
 }
 
 export class ListCustomersBodyDto extends FilterDto {}
