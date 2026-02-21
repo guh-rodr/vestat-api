@@ -29,7 +29,7 @@ export class SaleService {
     let transactionDesc = '';
 
     if (data.customerId) {
-      const customer = await this.prisma.customer.findFirst({
+      const customer = await this.prisma.customer.findFirstOrThrow({
         where: { id: data.customerId },
       });
 
@@ -64,7 +64,7 @@ export class SaleService {
       const model = models.find((m) => m.id === item.modelId);
 
       if (!model) {
-        throw new HttpException(`Modelo ID ${item.modelId} não encontrado`, HttpStatus.BAD_REQUEST);
+        throw new NotFoundException(`Modelo ID ${item.modelId} não encontrado`);
       }
 
       return {
@@ -92,10 +92,12 @@ export class SaleService {
         },
       },
     });
+
+    return sale;
   }
 
   async getOverview(saleId: string) {
-    const sale = await this.prisma.sale.findFirst({
+    const sale = await this.prisma.sale.findFirstOrThrow({
       where: { id: saleId },
       select: {
         total: true,
@@ -129,21 +131,27 @@ export class SaleService {
   }
 
   async getItems(saleId: string) {
-    const items = await this.prisma.saleItem.findMany({
-      where: { saleId },
+    const sale = await this.prisma.sale.findFirstOrThrow({
+      where: {
+        id: saleId,
+      },
       select: {
-        id: true,
-        categoryName: true,
-        modelName: true,
-        size: true,
-        color: true,
-        print: true,
-        costPrice: true,
-        salePrice: true,
+        items: {
+          select: {
+            id: true,
+            categoryName: true,
+            modelName: true,
+            size: true,
+            color: true,
+            print: true,
+            costPrice: true,
+            salePrice: true,
+          },
+        },
       },
     });
 
-    const result = items.map((i) => ({
+    const result = sale.items.map((i) => ({
       ...i,
       costPrice: i.costPrice,
       salePrice: i.salePrice,
@@ -153,29 +161,34 @@ export class SaleService {
   }
 
   async delete(id: string) {
-    const sale = await this.prisma.sale.delete({ where: { id } });
-    return sale;
+    await this.prisma.sale.delete({ where: { id } });
   }
 
   async deleteMany(data: DeleteManySaleBodyDto) {
-    const sales = await this.prisma.sale.deleteMany({ where: { id: { in: data.ids } } });
-    return sales;
+    await this.prisma.sale.deleteMany({ where: { id: { in: data.ids } } });
   }
 
   async getInstallments(saleId: string) {
-    const installments = await this.prisma.cashFlowTransaction.findMany({
-      where: { saleId, flow: 'inflow', category: 'SALES_REVENUE' },
-      select: {
-        id: true,
-        date: true,
-        value: true,
+    const sale = await this.prisma.sale.findFirstOrThrow({
+      where: {
+        id: saleId,
       },
-      orderBy: {
-        date: 'desc',
+      select: {
+        transactions: {
+          where: { flow: 'inflow', category: 'SALES_REVENUE' },
+          select: {
+            id: true,
+            date: true,
+            value: true,
+          },
+          orderBy: {
+            date: 'desc',
+          },
+        },
       },
     });
 
-    const result = installments.map(({ date, ...i }) => ({
+    const result = sale.transactions.map(({ date, ...i }) => ({
       ...i,
       paidAt: date,
       value: i.value,
@@ -260,15 +273,15 @@ export class SaleService {
       ...pagination,
     });
 
-    const mappedRows = rows.map(({ customerId, customerName, ...row }) => ({
+    const rowsWithCustomer = rows.map(({ customerId, customerName, ...row }) => ({
       customer: customerId ? { id: customerId, name: customerName } : null,
       ...row,
-    }));
+    })) as SaleRowDto[];
 
     const result = {
       rowCount: count,
       pageCount: Math.ceil(count / 10),
-      rows: mappedRows,
+      rows: rowsWithCustomer,
     };
 
     return result;
