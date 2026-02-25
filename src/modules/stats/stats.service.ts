@@ -13,9 +13,17 @@ export class StatsService {
     const startOfMonth = now.startOf('month');
     const endOfMonth = now.endOf('month');
 
-    const numberOfWeeks = Math.ceil(endOfMonth.diff(startOfMonth, 'weeks').weeks);
+    let currentWeekStart = startOfMonth.startOf('week');
 
-    const labels = Array.from(Array(numberOfWeeks)).map((_, idx) => `Semana ${idx + 1}`);
+    const labels: string[] = [];
+    let weekIndex = 1;
+
+    while (currentWeekStart <= endOfMonth) {
+      labels.push(`Semana ${weekIndex}`);
+
+      currentWeekStart = currentWeekStart.plus({ weeks: 1 });
+      weekIndex++;
+    }
 
     return labels;
   }
