@@ -41,28 +41,40 @@ model Customer {
 }
 
 model SaleItem {
-  id           String  @id @default(cuid())
-  sale         Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  saleId       String
-  costPrice    Int
-  salePrice    Int
-  model        Model?  @relation(fields: [modelId], references: [id], onDelete: SetNull)
-  modelId      String?
+  id        String       @id @default(cuid())
+  sale      Sale         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId    String
+  variantId String
+  variant   ModelVariant @relation(fields: [variantId], references: [id])
+
   modelName    String
   categoryName String
-  color        String
-  print        String
-  size         String
+  costPrice    Int
+  salePrice    Int
+  color        String?
+  size         String?
+}
+
+model ModelVariant {
+  id        String     @id @default(cuid())
+  color     String?
+  size      String?
+  costPrice Int
+  salePrice Int
+  quantity  Int
+  modelId   String
+  model     Model      @relation(fields: [modelId], references: [id])
+  saleItems SaleItem[]
+
+  @@unique([modelId, color, size])
 }
 
 model Model {
-  id         String     @id @default(cuid())
+  id         String         @id @default(cuid())
   name       String
-  costPrice  Int?
-  salePrice  Int?
-  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category   Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?
-  items      SaleItem[]
+  variants   ModelVariant[]
 }
 
 model Category {
