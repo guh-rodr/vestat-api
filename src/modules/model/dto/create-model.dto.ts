@@ -28,6 +28,10 @@ export class CreateModelBodyDto {
   @IsNotEmpty()
   name: string;
 
+  @IsInt()
+  @IsOptional()
+  quantity?: number;
+
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => (value ? toCents(value) : undefined))
