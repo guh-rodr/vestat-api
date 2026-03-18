@@ -74,6 +74,7 @@ model Model {
   name       String
   category   Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?
+  isVariable Boolean        @default(false)
   variants   ModelVariant[]
 }
 
