@@ -8,25 +8,48 @@ export class ModelService {
   constructor(private prisma: PrismaService) {}
 
   async create(category: string, data: CreateModelBodyDto) {
-    const { _count, ...model } = await this.prisma.model.create({
-      data: {
-        ...data,
-        category: {
-          connectOrCreate: {
-            where: { id: category },
-            create: { name: category },
+    const isVariable = data.variants.length > 0;
+
+    if (isVariable) {
+      await this.prisma.model.create({
+        data: {
+          name: data.name,
+          isVariable: true,
+          variants: {
+            createMany: {
+              data: data.variants,
+            },
+          },
+          category: {
+            connectOrCreate: {
+              where: { id: category },
+              create: { name: category },
+            },
           },
         },
-      },
-      select: this.modelSelect,
-    });
+      });
+    } else {
+      const defaultVariant = {
+        costPrice: data.costPrice,
+        salePrice: data.salePrice,
+        quantity: data.quantity,
+      };
 
-    const result = {
-      ...model,
-      itemCount: _count.items,
-    };
-
-    return result;
+      await this.prisma.model.create({
+        data: {
+          name: data.name,
+          variants: {
+            create: defaultVariant,
+          },
+          category: {
+            connectOrCreate: {
+              where: { id: category },
+              create: { name: category },
+            },
+          },
+        },
+      });
+    }
   }
 
   async update(categoryId: string, modelId: string, data: UpdateModelBodyDto) {
