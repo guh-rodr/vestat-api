@@ -80,17 +80,48 @@ export class CategoryService {
             id: true,
             name: true,
             categoryId: true,
-            costPrice: true,
-            salePrice: true,
-            _count: { select: { items: true } },
+            isVariable: true,
+            variants: {
+              select: {
+                id: true,
+                color: true,
+                size: true,
+                costPrice: true,
+                salePrice: true,
+                quantity: true,
+                _count: { select: { saleItems: true } },
+              },
+            },
           },
         },
       },
     });
 
-    const result = categories.map((c) => ({
-      ...c,
-      models: c.models.map(({ _count, ...m }) => ({ ...m, itemCount: _count.items })),
+    const result = categories.map((category) => ({
+      ...category,
+      models: category.models.map(({ variants, ...model }) => {
+        if (model.isVariable) {
+          const variantsWithoutCount = variants.map(({ _count, ...v }) => v);
+          const itemCount = variants.reduce((prev, curr) => prev + curr._count.saleItems, 0);
+
+          return {
+            ...model,
+            itemCount,
+            variants: variantsWithoutCount,
+          };
+        } else {
+          const { costPrice, salePrice, quantity, _count } = variants[0];
+          const itemCount = _count.saleItems;
+
+          return {
+            ...model,
+            itemCount,
+            costPrice,
+            salePrice,
+            quantity,
+          };
+        }
+      }),
     }));
 
     return result;
