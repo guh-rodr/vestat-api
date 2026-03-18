@@ -7,20 +7,6 @@ import { UpdateModelBodyDto } from './dto/update-model.dto';
 export class ModelService {
   constructor(private prisma: PrismaService) {}
 
-  private readonly modelSelect = {
-    id: true,
-    name: true,
-    category: {
-      select: {
-        id: true,
-        name: true,
-      },
-    },
-    costPrice: true,
-    salePrice: true,
-    _count: { select: { items: true } },
-  } as const;
-
   async create(category: string, data: CreateModelBodyDto) {
     const { _count, ...model } = await this.prisma.model.create({
       data: {
