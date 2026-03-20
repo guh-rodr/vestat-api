@@ -65,6 +65,7 @@ model ModelVariant {
   modelId   String
   model     Model      @relation(fields: [modelId], references: [id])
   saleItems SaleItem[]
+  deletedAt DateTime?
 
   @@unique([modelId, color, size])
 }
@@ -76,6 +77,7 @@ model Model {
   categoryId String?
   isVariable Boolean        @default(false)
   variants   ModelVariant[]
+  deletedAt  DateTime?
 }
 
 model Category {
