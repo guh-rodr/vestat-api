@@ -98,7 +98,7 @@ export class CategoryService {
       ...category,
       models: category.models.map(({ variants, ...model }) => {
         if (model.isVariable) {
-          const variantsWithoutCount = variants.map(({ _count, ...v }) => v);
+          const variantsWithoutCount = variants.map(({ _count, ...v }) => ({ ...v, hasSales: _count.saleItems > 0 }));
           const itemCount = variants.reduce((prev, curr) => prev + curr._count.saleItems, 0);
 
           return {
