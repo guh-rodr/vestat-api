@@ -48,11 +48,7 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
-        models: fetchModels
-          ? {
-              select: { id: true, name: true, costPrice: true, salePrice: true },
-            }
-          : undefined,
+        models: fetchModels ? { where: { deletedAt: null }, select: { id: true, name: true } } : undefined,
       },
       take: 5,
     });
@@ -82,6 +78,7 @@ export class CategoryService {
             categoryId: true,
             isVariable: true,
             variants: {
+              where: { deletedAt: null },
               select: {
                 id: true,
                 color: true,
