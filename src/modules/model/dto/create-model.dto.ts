@@ -2,14 +2,16 @@ import { Transform, Type } from 'class-transformer';
 import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { toCents } from 'src/common/utils/currency.util';
 
-class ModelVariant {
+export class CreateModelVariantDto {
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
-  color: string;
+  color?: string;
 
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
-  size: string;
+  size?: string;
 
   @IsNumber()
   @Transform(({ value }) => (value ? toCents(value) : undefined))
@@ -45,6 +47,6 @@ export class CreateModelBodyDto {
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => ModelVariant)
-  variants: ModelVariant[];
+  @Type(() => CreateModelVariantDto)
+  variants: CreateModelVariantDto[];
 }

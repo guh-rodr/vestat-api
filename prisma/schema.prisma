@@ -57,8 +57,8 @@ model SaleItem {
 
 model ModelVariant {
   id        String     @id @default(cuid())
-  color     String?
-  size      String?
+  color     String     @default("")
+  size      String     @default("")
   costPrice Int?
   salePrice Int?
   quantity  Int
