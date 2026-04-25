@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { toCents } from 'src/common/utils/currency.util';
 
 export class CreateModelVariantDto {
@@ -26,6 +26,10 @@ export class CreateModelVariantDto {
 }
 
 export class CreateModelBodyDto {
+  @IsString()
+  @IsIn(['simple', 'variable'])
+  type: 'simple' | 'variable';
+
   @IsString()
   @IsNotEmpty()
   name: string;

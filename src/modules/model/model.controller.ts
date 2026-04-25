@@ -18,7 +18,7 @@ export class ModelController {
   }
 
   @Patch(':id')
-  update(@Param('cid') categoryId: string, @Param('id') modelId: string, @Body() body: UpdateModelBodyDto) {
-    return this.modelService.update(categoryId, modelId, body);
+  update(@Param('id') modelId: string, @Body() body: UpdateModelBodyDto) {
+    return this.modelService.update(modelId, body);
   }
 }
