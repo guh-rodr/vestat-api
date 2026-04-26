@@ -57,7 +57,7 @@ export class ModelService {
     }
   }
 
-  async create(category: string, data: CreateModelBodyDto) {
+  async create({ categoryId, ...data }: CreateModelBodyDto) {
     const isVariable = data.type === 'variable';
 
     const variants = isVariable
@@ -75,12 +75,7 @@ export class ModelService {
         data: {
           name: data.name,
           isVariable,
-          category: {
-            connectOrCreate: {
-              where: { id: category },
-              create: { name: category },
-            },
-          },
+          categoryId,
         },
         select: ModelService.modelSelectFields,
       });

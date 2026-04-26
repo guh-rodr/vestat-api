@@ -32,6 +32,10 @@ export class CreateModelBodyDto {
 
   @IsString()
   @IsNotEmpty()
+  categoryId: string;
+
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsInt()

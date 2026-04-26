@@ -3,7 +3,7 @@ import { CreateModelBodyDto } from './dto/create-model.dto';
 import { UpdateModelBodyDto } from './dto/update-model.dto';
 import { ModelService } from './model.service';
 
-@Controller('/categories/:cid/models')
+@Controller('/models')
 export class ModelController {
   constructor(private readonly modelService: ModelService) {}
 
@@ -13,8 +13,8 @@ export class ModelController {
   }
 
   @Post()
-  create(@Param('cid') categoryId: string, @Body() body: CreateModelBodyDto) {
-    return this.modelService.create(categoryId, body);
+  create(@Body() body: CreateModelBodyDto) {
+    return this.modelService.create(body);
   }
 
   @Patch(':id')
