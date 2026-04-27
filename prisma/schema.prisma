@@ -51,8 +51,6 @@ model SaleItem {
   categoryName String
   costPrice    Int
   salePrice    Int
-  color        String?
-  size         String?
 }
 
 model ModelVariant {
