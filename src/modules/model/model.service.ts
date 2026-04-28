@@ -234,6 +234,22 @@ export class ModelService {
     return this.toModelDto(result);
   }
 
+  async findVariants(modelId: string) {
+    const variants = await this.prisma.modelVariant.findMany({
+      where: { modelId, deletedAt: null },
+      select: {
+        id: true,
+        color: true,
+        size: true,
+        quantity: true,
+        costPrice: true,
+        salePrice: true,
+      },
+    });
+
+    return variants;
+  }
+
   async delete(id: string) {
     const model = await this.prisma.model.delete({ where: { id } });
 

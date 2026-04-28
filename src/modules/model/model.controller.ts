@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CreateModelBodyDto } from './dto/create-model.dto';
 import { UpdateModelBodyDto } from './dto/update-model.dto';
 import { ModelService } from './model.service';
@@ -6,6 +6,11 @@ import { ModelService } from './model.service';
 @Controller('/models')
 export class ModelController {
   constructor(private readonly modelService: ModelService) {}
+
+  @Get('/:id/variants')
+  findVariants(@Param('id') modelId: string) {
+    return this.modelService.findVariants(modelId);
+  }
 
   @Delete(':id')
   delete(@Param('id') id: string) {
