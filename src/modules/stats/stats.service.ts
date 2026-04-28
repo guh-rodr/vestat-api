@@ -293,11 +293,11 @@ export class StatsService {
 
     const query = await this.prisma.$queryRaw`
       SELECT
-        si.categoryName as category,
+        si."categoryName" as category,
         CAST(COUNT(si.id) AS FLOAT) AS count
-      FROM SaleItem si
-      JOIN Sale s ON si.saleId = s.id
-      WHERE s.purchasedAt >= ${startDate} AND s.purchasedAt <= ${endDate}
+      FROM "SaleItem" si
+      JOIN "Sale" s ON si."saleId" = s.id
+      WHERE s."purchasedAt" >= ${startDate} AND s."purchasedAt" <= ${endDate}
       GROUP BY category
       ORDER BY count DESC
       LIMIT 5;
