@@ -25,14 +25,36 @@ import { SALE_SORTABLE_FIELDS } from './sale.sort';
 export class SaleService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateSaleBodyDto): Promise<CreateSaleResponseDto> {
+  async create(data: CreateSaleBodyDto) {
+    const variantsIds = data.items.map((i) => i.variantId);
+
+    const variants = await this.prisma.modelVariant.findMany({
+      where: { id: { in: variantsIds } },
+      select: {
+        id: true,
+        costPrice: true,
+      },
+    });
+
     const purchasedAt = DateTime.fromISO(data.purchasedAt, { zone: 'America/Sao_Paulo' }).toJSDate();
     const installmentPaidAt = DateTime.fromISO(data.installment?.paidAt, { zone: 'America/Sao_Paulo' }).toJSDate();
     const saleType = !!data.installment ? 'Parcela 1' : 'À vista';
 
+    const { totalCostPrice, totalSalePrice, variantCounts } = data.items.reduce(
+      (acc, cv) => {
+        const { costPrice } = variants.find((v) => v.id === cv.variantId);
+
+        acc.totalCostPrice += costPrice;
+        acc.totalSalePrice += cv.salePrice;
+        acc.variantCounts[cv.variantId] = (acc.variantCounts[cv.variantId] ?? 0) + 1;
+        return acc;
+      },
+      { totalCostPrice: 0, totalSalePrice: 0, variantCounts: {} },
+    );
+
     const summary = {
-      total: data.items.reduce((acc, cv) => acc + cv.salePrice, 0),
-      profit: data.items.reduce((acc, cv) => acc + (cv.salePrice - cv.costPrice), 0),
+      total: totalSalePrice,
+      profit: totalSalePrice - totalCostPrice,
     };
 
     let transactionDesc = '';
@@ -49,13 +71,13 @@ export class SaleService {
       transactionDesc = `Compra [sem cliente] - ${saleType}`;
     }
 
-    const date = !!data.installment ? installmentPaidAt : purchasedAt;
     const transactionValue = !!data.installment ? data.installment.value : summary.total;
 
     const modelIds = data.items.map((i) => i.modelId);
     const models = await this.prisma.model.findMany({
       where: {
         id: { in: modelIds },
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -76,31 +98,49 @@ export class SaleService {
         throw new NotFoundException(`Modelo ID ${item.modelId} não encontrado`);
       }
 
+      const costPrice = variants.find((v) => v.id === item.variantId).costPrice;
+
       return {
-        ...item,
         categoryName: model.category.name,
         modelName: model.name,
+        costPrice,
+        salePrice: item.salePrice,
+        variantId: item.variantId,
       };
     });
 
-    const sale = await this.prisma.sale.create({
-      data: {
-        ...summary,
-        customerId: data.customerId,
-        isInstallment: !!data.installment,
-        purchasedAt: purchasedAt,
-        items: { createMany: { data: items } },
-        transactions: {
-          create: {
-            flow: 'inflow',
-            date: date,
-            description: transactionDesc,
-            category: 'SALES_REVENUE',
-            value: transactionValue,
+    const [sale] = await this.prisma.$transaction([
+      this.prisma.sale.create({
+        data: {
+          ...summary,
+          customerId: data.customerId,
+          isInstallment: !!data.installment,
+          purchasedAt,
+          items: {
+            createMany: { data: items },
+          },
+          transactions: {
+            create: {
+              flow: 'inflow',
+              date: installmentPaidAt,
+              description: transactionDesc,
+              category: 'SALES_REVENUE',
+              value: transactionValue,
+            },
           },
         },
-      },
-    });
+      }),
+      ...variantsIds.map((id) =>
+        this.prisma.modelVariant.update({
+          where: { id },
+          data: {
+            quantity: {
+              decrement: variantCounts[id],
+            },
+          },
+        }),
+      ),
+    ]);
 
     return sale;
   }

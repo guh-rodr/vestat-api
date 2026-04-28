@@ -11,9 +11,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { toCents } from 'src/common/utils/currency.util';
-import { Color } from '../enums/color.enum';
-import { Print } from '../enums/print.enum';
-import { Size } from '../enums/size.enum';
 import { CreateInstallmentBodyDto } from './create-installment.dto';
 
 class SaleItem {
@@ -22,25 +19,10 @@ class SaleItem {
   @IsNotEmpty()
   modelId: string;
 
-  @ApiProperty({ description: 'Cor', example: 'black', enum: Color })
+  @ApiProperty({ description: 'ID da variante (CUID)', example: 'cmlvoby7y000...' })
   @IsString()
   @IsNotEmpty()
-  color: string;
-
-  @ApiProperty({ description: 'Estampa', example: 'plain', enum: Print })
-  @IsString()
-  @IsNotEmpty()
-  print: string;
-
-  @ApiProperty({ description: 'Tamanho', example: 'm', enum: Size })
-  @IsString()
-  @IsNotEmpty()
-  size: string;
-
-  @ApiProperty({ description: 'Preço de compra', example: 120 })
-  @IsNumber()
-  @Transform(({ value }) => toCents(value))
-  costPrice: number;
+  variantId: string;
 
   @ApiProperty({ description: 'Preço de venda', example: 230 })
   @IsNumber()
