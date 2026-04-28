@@ -11,9 +11,7 @@ import { DeleteManySaleBodyDto } from './dto/delete-sale.dto';
 import { ListSalesBodyDto, ListSalesQueryDto } from './dto/list-sales.dto';
 import {
   CreateInstallmentResponseDto,
-  CreateSaleResponseDto,
   SaleInstallmentResponseDto,
-  SaleItemResponseDto,
   SaleListResponseDto,
   SaleOverviewResponseDto,
   SaleRowDto,
@@ -179,7 +177,7 @@ export class SaleService {
     };
   }
 
-  async getItems(saleId: string): Promise<SaleItemResponseDto[]> {
+  async getItems(saleId: string) {
     const sale = await this.prisma.sale.findFirstOrThrow({
       where: {
         id: saleId,
@@ -188,25 +186,37 @@ export class SaleService {
         items: {
           select: {
             id: true,
+            variantId: true,
             categoryName: true,
             modelName: true,
-            size: true,
-            color: true,
-            print: true,
             costPrice: true,
             salePrice: true,
+            variant: {
+              select: {
+                color: true,
+                size: true,
+              },
+            },
           },
         },
       },
     });
 
-    const result = sale.items.map((i) => ({
-      ...i,
-      costPrice: i.costPrice,
-      salePrice: i.salePrice,
-    }));
+    const groupedItems = Object.values(
+      sale.items.reduce(
+        (acc, item) => {
+          const key = item.variantId;
+          if (!acc[key]) {
+            acc[key] = { ...item, quantity: 0 };
+          }
+          acc[key].quantity += 1;
+          return acc;
+        },
+        {} as Record<string, (typeof sale.items)[0] & { quantity: number }>,
+      ),
+    );
 
-    return result;
+    return groupedItems;
   }
 
   async delete(id: string) {
