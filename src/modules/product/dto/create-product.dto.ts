@@ -2,7 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import { IsArray, IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { toCents } from 'src/common/utils/currency.util';
 
-export class CreateModelVariantDto {
+export class CreateProductVariantDto {
   @IsString()
   @IsOptional()
   @IsNotEmpty()
@@ -25,7 +25,7 @@ export class CreateModelVariantDto {
   quantity: number;
 }
 
-export class CreateModelBodyDto {
+export class CreateProductBodyDto {
   @IsString()
   @IsIn(['simple', 'variable'])
   type: 'simple' | 'variable';
@@ -55,6 +55,6 @@ export class CreateModelBodyDto {
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => CreateModelVariantDto)
-  variants: CreateModelVariantDto[];
+  @Type(() => CreateProductVariantDto)
+  variants: CreateProductVariantDto[];
 }

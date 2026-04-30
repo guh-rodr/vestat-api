@@ -4,11 +4,6 @@ import { PrismaService } from 'src/prisma.service';
 import { CreateCategoryBodyDto } from './dto/create-category.dto';
 import { UpdateCategoryBodyDto } from './dto/update-category.dto';
 
-interface ListParams {
-  search?: string;
-  fetchModels?: boolean;
-}
-
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
@@ -39,7 +34,7 @@ export class CategoryService {
             },
           },
           {
-            models: {
+            products: {
               some: { name: { startsWith: search } },
             },
           },
@@ -48,7 +43,7 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
-        models: fetchModels ? { where: { deletedAt: null }, select: { id: true, name: true } } : undefined,
+        products: fetchModels ? { where: { deletedAt: null }, select: { id: true, name: true } } : undefined,
       },
       take: 5,
     });

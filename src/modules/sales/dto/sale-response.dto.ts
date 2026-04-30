@@ -99,7 +99,7 @@ export class SaleItemResponseDto {
   categoryName: string;
 
   @ApiProperty({ description: 'Nome do modelo', example: 'Regata' })
-  modelName: string;
+  productName: string;
 
   @ApiProperty({ description: 'Cor', example: 'black', enum: Color })
   color: string;

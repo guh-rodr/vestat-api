@@ -4,14 +4,14 @@ import { PrismaClient } from 'generated/prisma/client';
 import { DateTime } from 'luxon';
 import { PrismaService } from 'src/prisma.service';
 import * as util from 'util';
-import { CreateModelBodyDto, CreateModelVariantDto } from './dto/create-model.dto';
-import { UpdateModelBodyDto, UpdateModelVariantDto } from './dto/update-model.dto';
+import { CreateProductBodyDto, CreateProductVariantDto } from './dto/create-product.dto';
+import { UpdateProductBodyDto, UpdateProductVariantDto } from './dto/update-product.dto';
 
 @Injectable()
-export class ModelService {
+export class ProductService {
   constructor(private prisma: PrismaService) {}
 
-  static readonly modelSelectFields = {
+  static readonly productSelectFields = {
     id: true,
     name: true,
     categoryId: true,
@@ -28,27 +28,27 @@ export class ModelService {
         _count: { select: { saleItems: true } },
       },
     },
-  } satisfies Prisma.ModelSelect;
+  } satisfies Prisma.ProductSelect;
 
-  private toModelDto(model: Prisma.ModelGetPayload<{ select: typeof ModelService.modelSelectFields }>) {
-    if (model.isVariable) {
-      const variantsWithoutCount = model.variants.map(({ _count, ...v }) => ({
+  private toProductEditDto(product: Prisma.ProductGetPayload<{ select: typeof ProductService.productSelectFields }>) {
+    if (product.isVariable) {
+      const variantsWithoutCount = product.variants.map(({ _count, ...v }) => ({
         ...v,
         hasSales: _count.saleItems > 0,
       }));
-      const itemCount = model.variants.reduce((prev, curr) => prev + curr._count.saleItems, 0);
+      const itemCount = product.variants.reduce((prev, curr) => prev + curr._count.saleItems, 0);
 
       return {
-        ...model,
+        ...product,
         itemCount,
         variants: variantsWithoutCount,
       };
     } else {
-      const { costPrice, salePrice, quantity, _count } = model.variants[0];
+      const { costPrice, salePrice, quantity, _count } = product.variants[0];
       const itemCount = _count.saleItems;
 
       return {
-        ...model,
+        ...product,
         itemCount,
         costPrice,
         salePrice,
@@ -57,7 +57,7 @@ export class ModelService {
     }
   }
 
-  async create({ categoryId, ...data }: CreateModelBodyDto) {
+  async create({ categoryId, ...data }: CreateProductBodyDto) {
     const isVariable = data.type === 'variable';
 
     const variants = isVariable
@@ -70,42 +70,42 @@ export class ModelService {
           },
         ];
 
-    const model = await this.prisma.$transaction(async (tx) => {
-      const newModel = await tx.model.create({
+    const createdProduct = await this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
         data: {
           name: data.name,
           isVariable,
           categoryId,
         },
-        select: ModelService.modelSelectFields,
+        select: ProductService.productSelectFields,
       });
 
       const newVariants = [];
 
       for (const v of variants) {
-        const newVariant = await this.createVariant(newModel.id, v, tx);
+        const newVariant = await this.createVariant(product.id, v, tx);
 
         newVariants.push(newVariant);
       }
 
       return {
-        ...newModel,
+        ...product,
         variants: newVariants,
       };
     });
 
-    return this.toModelDto(model);
+    return this.toProductEditDto(createdProduct);
   }
 
   private async createVariant(
-    modelId: string,
-    variant: CreateModelVariantDto,
+    productId: string,
+    variant: CreateProductVariantDto,
     prismaClient: Prisma.TransactionClient | PrismaClient = this.prisma,
   ) {
-    return await prismaClient.modelVariant.upsert({
+    return await prismaClient.productVariant.upsert({
       where: {
-        modelId_color_size: {
-          modelId,
+        productId_color_size: {
+          productId,
           color: variant.color || '',
           size: variant.size || '',
         },
@@ -117,26 +117,26 @@ export class ModelService {
         salePrice: variant.salePrice,
       },
       create: {
-        modelId,
+        productId,
         ...variant,
       },
-      select: ModelService.modelSelectFields.variants.select,
+      select: ProductService.productSelectFields.variants.select,
     });
   }
 
   private async updateVariant(
     id: string,
-    variant: Partial<UpdateModelVariantDto>,
+    variant: Partial<UpdateProductVariantDto>,
     prismaClient: Prisma.TransactionClient | PrismaClient = this.prisma,
   ) {
-    await prismaClient.modelVariant.update({
+    await prismaClient.productVariant.update({
       where: { id },
       data: variant,
     });
   }
 
   private async removeVariant(id: string, prismaClient: Prisma.TransactionClient | PrismaClient = this.prisma) {
-    const foundVariant = await prismaClient.modelVariant.findFirstOrThrow({
+    const foundVariant = await prismaClient.productVariant.findFirstOrThrow({
       where: { id: id },
       select: { quantity: true, _count: { select: { saleItems: true } } },
     });
@@ -144,7 +144,7 @@ export class ModelService {
     if (foundVariant._count.saleItems > 0) {
       const currentDate = DateTime.now().setZone('America/Sao_Paulo').toJSDate();
 
-      await prismaClient.modelVariant.update({
+      await prismaClient.productVariant.update({
         where: { id: id },
         data: {
           deletedAt: currentDate,
@@ -152,16 +152,16 @@ export class ModelService {
         },
       });
     } else {
-      await prismaClient.modelVariant.delete({
+      await prismaClient.productVariant.delete({
         where: { id: id },
       });
     }
   }
 
-  async update(modelId: string, data: UpdateModelBodyDto) {
+  async update(id: string, data: UpdateProductBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const foundModel = await tx.model.findFirstOrThrow({
-        where: { id: modelId },
+      const foundProduct = await tx.product.findFirstOrThrow({
+        where: { id },
         select: {
           isVariable: true,
           variants: { select: { id: true, costPrice: true, salePrice: true, quantity: true, deletedAt: true } },
@@ -170,32 +170,32 @@ export class ModelService {
 
       const isNowVariable = data.type === 'variable';
 
-      if (foundModel.isVariable && !isNowVariable) {
+      if (foundProduct.isVariable && !isNowVariable) {
         // mudou: variado -> simples
 
-        const variantsToRemove = foundModel.variants.filter((v) => !v.deletedAt);
+        const variantsToRemove = foundProduct.variants.filter((v) => !v.deletedAt);
         await Promise.all(variantsToRemove.map(({ id }) => this.removeVariant(id, tx)));
 
         const { costPrice, salePrice, quantity } = data;
-        await this.createVariant(modelId, { color: '', size: '', costPrice, salePrice, quantity }, tx);
+        await this.createVariant(id, { color: '', size: '', costPrice, salePrice, quantity }, tx);
       }
 
-      if (!foundModel.isVariable && isNowVariable) {
+      if (!foundProduct.isVariable && isNowVariable) {
         // mudou: simples -> variado
 
-        const defaultVariant = foundModel.variants.find((v) => !v.deletedAt);
+        const defaultVariant = foundProduct.variants.find((v) => !v.deletedAt);
 
         if (defaultVariant) {
           await this.removeVariant(defaultVariant.id, tx);
         }
 
-        await Promise.all(data.variants.map(({ id, status, ...v }) => this.createVariant(modelId, v, tx)));
+        await Promise.all(data.variants.map(({ id, status, ...v }) => this.createVariant(id, v, tx)));
       }
 
-      if (!foundModel.isVariable && !isNowVariable) {
+      if (!foundProduct.isVariable && !isNowVariable) {
         // manteve: simples -> simples
 
-        const { id, deletedAt, ...defaultVariant } = foundModel.variants.find((v) => !v.deletedAt) ?? {};
+        const { id, deletedAt, ...defaultVariant } = foundProduct.variants.find((v) => !v.deletedAt) ?? {};
 
         if (id) {
           const newVariant = { costPrice: data.costPrice, salePrice: data.salePrice };
@@ -207,7 +207,7 @@ export class ModelService {
         }
       }
 
-      if (foundModel.isVariable && isNowVariable) {
+      if (foundProduct.isVariable && isNowVariable) {
         // manteve: variado -> variado
 
         const removedVariants = data.variants.filter((v) => v.status === 'removed');
@@ -215,28 +215,28 @@ export class ModelService {
         const modifiedVariants = data.variants.filter((v) => v.status === 'modified');
 
         await Promise.all(removedVariants.map(({ id }) => this.removeVariant(id, tx)));
-        await Promise.all(addedVariants.map(({ status, ...v }) => this.createVariant(modelId, v, tx)));
+        await Promise.all(addedVariants.map(({ status, ...v }) => this.createVariant(id, v, tx)));
         await Promise.all(modifiedVariants.map(({ status, quantity, id, ...v }) => this.updateVariant(id, v, tx)));
       }
 
-      const updatedModel = await tx.model.update({
-        where: { id: modelId },
+      const updatedProduct = await tx.product.update({
+        where: { id },
         data: {
           name: data.name,
           isVariable: isNowVariable,
         },
-        select: ModelService.modelSelectFields,
+        select: ProductService.productSelectFields,
       });
 
-      return updatedModel;
+      return updatedProduct;
     });
 
-    return this.toModelDto(result);
+    return this.toProductEditDto(result);
   }
 
-  async findVariants(modelId: string) {
-    const variants = await this.prisma.modelVariant.findMany({
-      where: { modelId, deletedAt: null },
+  async findVariants(productId: string) {
+    const variants = await this.prisma.productVariant.findMany({
+      where: { productId, deletedAt: null },
       select: {
         id: true,
         color: true,
@@ -251,8 +251,8 @@ export class ModelService {
   }
 
   async delete(id: string) {
-    const model = await this.prisma.model.delete({ where: { id } });
+    const product = await this.prisma.product.delete({ where: { id } });
 
-    return model;
+    return product;
   }
 }

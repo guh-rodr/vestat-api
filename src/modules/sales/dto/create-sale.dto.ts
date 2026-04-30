@@ -17,7 +17,7 @@ class SaleItem {
   @ApiProperty({ description: 'ID do modelo (CUID)', example: 'cmlvoby7y000...' })
   @IsString()
   @IsNotEmpty()
-  modelId: string;
+  productId: string;
 
   @ApiProperty({ description: 'ID da variante (CUID)', example: 'cmlvoby7y000...' })
   @IsString()
