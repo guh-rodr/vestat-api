@@ -57,6 +57,15 @@ export class ProductService {
     }
   }
 
+  async findOne(id: string) {
+    const product = await this.prisma.product.findFirstOrThrow({
+      where: { id },
+      select: ProductService.productSelectFields,
+    });
+
+    return this.toProductEditDto(product);
+  }
+
   async create({ categoryId, ...data }: CreateProductBodyDto) {
     const isVariable = data.type === 'variable';
 
