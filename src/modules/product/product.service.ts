@@ -225,9 +225,7 @@ export class ProductService {
 
         await Promise.all(removedVariants.map(({ id }) => this.removeVariant(id, tx)));
         await Promise.all(addedVariants.map(({ status, ...v }) => this.createVariant(productId, v, tx)));
-        await Promise.all(
-          modifiedVariants.map(({ status, quantity, id, ...v }) => this.updateVariant(productId, v, tx)),
-        );
+        await Promise.all(modifiedVariants.map(({ status, quantity, id, ...v }) => this.updateVariant(id, v, tx)));
       }
 
       const updatedProduct = await tx.product.update({
