@@ -140,3 +140,15 @@ view CashFlowStats {
   date        DateTime
   createdAt   DateTime
 }
+
+view ProductStats {
+  id           String
+  name         String
+  categoryId   String
+  categoryName String
+  isVariable   Boolean
+  variantCount Int
+  quantity     Int
+  minSalePrice Float
+  maxSalePrice Float
+}
