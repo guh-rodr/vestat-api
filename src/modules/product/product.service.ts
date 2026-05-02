@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from 'generated/prisma/browser';
 import { PrismaClient } from 'generated/prisma/client';
 import { DateTime } from 'luxon';
+import { buildPrismaFilter } from 'src/common/utils/filter.util';
+import { buildPrismaPagination } from 'src/common/utils/pagination.util';
+import { buildPrismaSort } from 'src/common/utils/sort.util';
 import { PrismaService } from 'src/prisma.service';
 import * as util from 'util';
 import { CreateProductBodyDto, CreateProductVariantDto } from './dto/create-product.dto';
+import { ListProductsBodyDto, ListProductsQueryDto } from './dto/list-products.dto';
 import { UpdateProductBodyDto, UpdateProductVariantDto } from './dto/update-product.dto';
+import { PRODUCT_FILTERS_MAP } from './product.filters';
+import { PRODUCT_SORTABLE_FIELDS } from './product.sort';
 
 @Injectable()
 export class ProductService {
@@ -64,6 +70,42 @@ export class ProductService {
     });
 
     return this.toProductEditDto(product);
+  }
+
+  async listTable(options: ListProductsQueryDto, filter: ListProductsBodyDto) {
+    const sort = buildPrismaSort(options, PRODUCT_SORTABLE_FIELDS);
+    const pagination = buildPrismaPagination(options);
+
+    const queries = buildPrismaFilter(filter, PRODUCT_FILTERS_MAP);
+
+    const count = await this.prisma.productStats.count({
+      where: {
+        ...queries,
+        name: { startsWith: options.search },
+      },
+    });
+
+    const rows = await this.prisma.productStats.findMany({
+      where: {
+        ...queries,
+        name: { startsWith: options.search },
+      },
+      orderBy: sort || { id: 'desc' },
+      ...pagination,
+    });
+
+    const mappedRows = rows.map(({ categoryId, categoryName, ...row }) => ({
+      ...row,
+      category: { id: categoryId, name: categoryName },
+    }));
+
+    const result = {
+      rowCount: count,
+      pageCount: Math.ceil(count / 10),
+      rows: mappedRows,
+    };
+
+    return result;
   }
 
   async create({ categoryId, ...data }: CreateProductBodyDto) {

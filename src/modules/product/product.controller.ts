@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateProductBodyDto } from './dto/create-product.dto';
+import { ListProductsBodyDto, ListProductsQueryDto } from './dto/list-products.dto';
 import { UpdateProductBodyDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
 
@@ -10,6 +11,17 @@ export class ProductController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productService.findOne(id);
+  }
+
+  @Post('/list')
+  listTable(@Query() query: ListProductsQueryDto, @Body() body: ListProductsBodyDto) {
+    return this.productService.listTable(
+      {
+        page: query.page || 1,
+        ...query,
+      },
+      body,
+    );
   }
 
   @Get('/:id/variants')
