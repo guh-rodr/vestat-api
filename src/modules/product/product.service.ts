@@ -167,10 +167,10 @@ export class ProductService {
     }
   }
 
-  async update(id: string, data: UpdateProductBodyDto) {
+  async update(productId: string, data: UpdateProductBodyDto) {
     const result = await this.prisma.$transaction(async (tx) => {
       const foundProduct = await tx.product.findFirstOrThrow({
-        where: { id },
+        where: { id: productId },
         select: {
           isVariable: true,
           variants: { select: { id: true, costPrice: true, salePrice: true, quantity: true, deletedAt: true } },
@@ -186,7 +186,7 @@ export class ProductService {
         await Promise.all(variantsToRemove.map(({ id }) => this.removeVariant(id, tx)));
 
         const { costPrice, salePrice, quantity } = data;
-        await this.createVariant(id, { color: '', size: '', costPrice, salePrice, quantity }, tx);
+        await this.createVariant(productId, { color: '', size: '', costPrice, salePrice, quantity }, tx);
       }
 
       if (!foundProduct.isVariable && isNowVariable) {
@@ -198,7 +198,7 @@ export class ProductService {
           await this.removeVariant(defaultVariant.id, tx);
         }
 
-        await Promise.all(data.variants.map(({ id, status, ...v }) => this.createVariant(id, v, tx)));
+        await Promise.all(data.variants.map(({ id, status, ...v }) => this.createVariant(productId, v, tx)));
       }
 
       if (!foundProduct.isVariable && !isNowVariable) {
@@ -224,12 +224,14 @@ export class ProductService {
         const modifiedVariants = data.variants.filter((v) => v.status === 'modified');
 
         await Promise.all(removedVariants.map(({ id }) => this.removeVariant(id, tx)));
-        await Promise.all(addedVariants.map(({ status, ...v }) => this.createVariant(id, v, tx)));
-        await Promise.all(modifiedVariants.map(({ status, quantity, id, ...v }) => this.updateVariant(id, v, tx)));
+        await Promise.all(addedVariants.map(({ status, ...v }) => this.createVariant(productId, v, tx)));
+        await Promise.all(
+          modifiedVariants.map(({ status, quantity, id, ...v }) => this.updateVariant(productId, v, tx)),
+        );
       }
 
       const updatedProduct = await tx.product.update({
-        where: { id },
+        where: { id: productId },
         data: {
           name: data.name,
           isVariable: isNowVariable,
