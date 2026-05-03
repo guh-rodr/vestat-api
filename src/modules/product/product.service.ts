@@ -302,8 +302,41 @@ export class ProductService {
   }
 
   async delete(id: string) {
-    const product = await this.prisma.product.delete({ where: { id } });
+    const now = DateTime.now().setZone('America/Sao_Paulo').toJSDate();
 
-    return product;
+    await this.prisma.$transaction(async (tx) => {
+      const hasSales = await tx.productVariant.findFirst({
+        where: {
+          productId: id,
+          saleItems: { some: {} },
+        },
+        select: { id: true },
+      });
+
+      if (hasSales) {
+        // arquiva todas as variantes e o produto
+        await tx.product.update({
+          where: { id },
+          data: {
+            deletedAt: now,
+            variants: {
+              updateMany: {
+                where: { deletedAt: null },
+                data: { deletedAt: now },
+              },
+            },
+          },
+        });
+      } else {
+        // exclui todas as variantes e o produto
+        await tx.productVariant.deleteMany({
+          where: { productId: id },
+        });
+
+        await tx.product.delete({
+          where: { id },
+        });
+      }
+    });
   }
 }
