@@ -8,6 +8,7 @@ import { buildPrismaSort } from 'src/common/utils/sort.util';
 import { PrismaService } from 'src/prisma.service';
 import * as util from 'util';
 import { CreateProductBodyDto, CreateProductVariantDto } from './dto/create-product.dto';
+import { BulkDeleteProductsBodyDto } from './dto/delete-product.dto';
 import { ListProductsBodyDto, ListProductsQueryDto } from './dto/list-products.dto';
 import { UpdateProductBodyDto, UpdateProductVariantDto } from './dto/update-product.dto';
 import { PRODUCT_FILTERS_MAP } from './product.filters';
@@ -335,6 +336,61 @@ export class ProductService {
 
         await tx.product.delete({
           where: { id },
+        });
+      }
+    });
+  }
+
+  async bulkDelete({ ids }: BulkDeleteProductsBodyDto) {
+    const now = DateTime.now().setZone('America/Sao_Paulo').toJSDate();
+
+    await this.prisma.$transaction(async (tx) => {
+      const productsWithSales = await tx.product.findMany({
+        where: {
+          id: { in: ids },
+          variants: {
+            some: { saleItems: { some: {} } },
+          },
+        },
+        select: { id: true },
+      });
+
+      const idsWithSales = new Set(productsWithSales.map((p) => p.id));
+
+      const toSoftDelete = ids.filter((id) => idsWithSales.has(id));
+      const toHardDelete = ids.filter((id) => !idsWithSales.has(id));
+
+      // soft-delete
+      if (toSoftDelete.length > 0) {
+        await tx.product.updateMany({
+          where: {
+            id: { in: toSoftDelete },
+            deletedAt: null,
+          },
+          data: {
+            deletedAt: now,
+          },
+        });
+
+        await tx.productVariant.updateMany({
+          where: {
+            productId: { in: toSoftDelete },
+            deletedAt: null,
+          },
+          data: {
+            deletedAt: now,
+          },
+        });
+      }
+
+      // hard-delete
+      if (toHardDelete.length > 0) {
+        await tx.productVariant.deleteMany({
+          where: { productId: { in: toHardDelete } },
+        });
+
+        await tx.product.deleteMany({
+          where: { id: { in: toHardDelete } },
         });
       }
     });

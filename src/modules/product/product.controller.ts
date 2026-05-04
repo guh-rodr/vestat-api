@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateProductBodyDto } from './dto/create-product.dto';
+import { BulkDeleteProductsBodyDto } from './dto/delete-product.dto';
 import { ListProductsBodyDto, ListProductsQueryDto } from './dto/list-products.dto';
 import { UpdateProductBodyDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
@@ -32,6 +33,11 @@ export class ProductController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.productService.delete(id);
+  }
+
+  @Post('/bulk-delete')
+  bulkDelete(@Body() body: BulkDeleteProductsBodyDto) {
+    return this.productService.bulkDelete(body);
   }
 
   @Post()
