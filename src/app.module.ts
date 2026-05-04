@@ -5,7 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { TransactionModule } from './modules/cashflow/transaction.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CustomerModule } from './modules/customer/customer.module';
-import { ModelModule } from './modules/model/model.module';
+import { ProductModule } from './modules/product/product.module';
 import { SaleModule } from './modules/sales/sale.module';
 import { StatsModule } from './modules/stats/stats.module';
 
@@ -19,7 +19,7 @@ import { StatsModule } from './modules/stats/stats.module';
     CategoryModule,
     StatsModule,
     TransactionModule,
-    ModelModule,
+    ProductModule,
   ],
 })
 export class AppModule {}

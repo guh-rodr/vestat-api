@@ -26,7 +26,7 @@ export class SaleService {
   async create(data: CreateSaleBodyDto) {
     const variantsIds = data.items.map((i) => i.variantId);
 
-    const variants = await this.prisma.modelVariant.findMany({
+    const variants = await this.prisma.productVariant.findMany({
       where: { id: { in: variantsIds } },
       select: {
         id: true,
@@ -71,10 +71,10 @@ export class SaleService {
 
     const transactionValue = !!data.installment ? data.installment.value : summary.total;
 
-    const modelIds = data.items.map((i) => i.modelId);
-    const models = await this.prisma.model.findMany({
+    const productIds = data.items.map((i) => i.productId);
+    const products = await this.prisma.product.findMany({
       where: {
-        id: { in: modelIds },
+        id: { in: productIds },
         deletedAt: null,
       },
       select: {
@@ -90,17 +90,17 @@ export class SaleService {
     });
 
     const items: Prisma.SaleItemCreateManySaleInput[] = data.items.map((item) => {
-      const model = models.find((m) => m.id === item.modelId);
+      const product = products.find((m) => m.id === item.productId);
 
-      if (!model) {
-        throw new NotFoundException(`Modelo ID ${item.modelId} não encontrado`);
+      if (!product) {
+        throw new NotFoundException(`Produto ID ${item.productId} não encontrado`);
       }
 
       const costPrice = variants.find((v) => v.id === item.variantId).costPrice;
 
       return {
-        categoryName: model.category.name,
-        modelName: model.name,
+        categoryName: product.category.name,
+        productName: product.name,
         costPrice,
         salePrice: item.salePrice,
         variantId: item.variantId,
@@ -129,7 +129,7 @@ export class SaleService {
         },
       }),
       ...variantsIds.map((id) =>
-        this.prisma.modelVariant.update({
+        this.prisma.productVariant.update({
           where: { id },
           data: {
             quantity: {
@@ -188,7 +188,7 @@ export class SaleService {
             id: true,
             variantId: true,
             categoryName: true,
-            modelName: true,
+            productName: true,
             costPrice: true,
             salePrice: true,
             variant: {

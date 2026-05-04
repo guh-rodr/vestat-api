@@ -4,11 +4,6 @@ import { PrismaService } from 'src/prisma.service';
 import { CreateCategoryBodyDto } from './dto/create-category.dto';
 import { UpdateCategoryBodyDto } from './dto/update-category.dto';
 
-interface ListParams {
-  search?: string;
-  fetchModels?: boolean;
-}
-
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
@@ -39,7 +34,7 @@ export class CategoryService {
             },
           },
           {
-            models: {
+            products: {
               some: { name: { startsWith: search } },
             },
           },
@@ -48,80 +43,12 @@ export class CategoryService {
       select: {
         id: true,
         name: true,
-        models: fetchModels ? { where: { deletedAt: null }, select: { id: true, name: true } } : undefined,
+        products: fetchModels ? { where: { deletedAt: null }, select: { id: true, name: true } } : undefined,
       },
       take: 5,
     });
 
     return categories;
-  }
-
-  async list({ search = '' }: ListParams) {
-    const categories = await this.prisma.category.findMany({
-      where: {
-        OR: [
-          { name: { startsWith: search } },
-          {
-            models: {
-              some: { name: { startsWith: search } },
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        models: {
-          select: {
-            id: true,
-            name: true,
-            categoryId: true,
-            isVariable: true,
-            variants: {
-              where: { deletedAt: null },
-              select: {
-                id: true,
-                color: true,
-                size: true,
-                costPrice: true,
-                salePrice: true,
-                quantity: true,
-                _count: { select: { saleItems: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const result = categories.map((category) => ({
-      ...category,
-      models: category.models.map(({ variants, ...model }) => {
-        if (model.isVariable) {
-          const variantsWithoutCount = variants.map(({ _count, ...v }) => ({ ...v, hasSales: _count.saleItems > 0 }));
-          const itemCount = variants.reduce((prev, curr) => prev + curr._count.saleItems, 0);
-
-          return {
-            ...model,
-            itemCount,
-            variants: variantsWithoutCount,
-          };
-        } else {
-          const { costPrice, salePrice, quantity, _count } = variants[0];
-          const itemCount = _count.saleItems;
-
-          return {
-            ...model,
-            itemCount,
-            costPrice,
-            salePrice,
-            quantity,
-          };
-        }
-      }),
-    }));
-
-    return result;
   }
 
   async delete(id: string) {

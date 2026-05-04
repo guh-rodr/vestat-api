@@ -12,14 +12,6 @@ export class CategoryController {
     return this.categoryService.listAutocomplete(search, fetchModels === 'true');
   }
 
-  @Get()
-  list(@Query('search') search?: string, @Query('fetchModels') fetchModels?: string) {
-    return this.categoryService.list({
-      search,
-      fetchModels: fetchModels === 'true',
-    });
-  }
-
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: UpdateCategoryBodyDto) {
     return this.categoryService.update(id, body);
